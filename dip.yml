@@ -1,0 +1,65 @@
+version: '4'
+
+interaction:
+  sh:
+    description: Open bash shell in app container
+    service: runner
+    command: /bin/bash
+
+  bash:
+    description: Open bash shell in app container (w/o deps)
+    service: runner
+    command: /bin/bash
+    compose_run_options: [no-deps]
+
+  listen:
+    description: Wait for listen middleware(s).
+    service: runner
+    command: |
+      /bin/bash -c "dockerize -timeout 120s -wait tcp://db:5432"
+
+  bundle:
+    description: Run bundle command
+    service: runner
+    command: bundle
+    compose_run_options: [no-deps]
+
+  yarn:
+    description: Run yarn command
+    service: runner
+    command: yarn
+    compose_run_options: [no-deps]
+
+  rails:
+    description: Run rails command
+    service: runner
+    command: ./bin/rails
+    subcommands:
+      s:
+        description: Run Rails server available at http://localhost:3000
+        service: app
+        compose:
+          run_options: [service-ports, use-aliases]
+
+  rspec:
+    description: Run rspec command
+    service: runner
+    command: ./bin/rspec
+
+  rubocop:
+    description: Run rubocop command
+    service: runner
+    command: ./bin/rubocop
+    compose_run_options: [no-deps]
+
+provision:
+  # container 内で root コンテナで作られると書き込めなくなるので先に以下ディレクトリを確保します
+  - mkdir -p node_modules/ public/assets/ public/packs/ tmp/cache/
+  - dip compose down --volumes --rmi all
+  - dip compose up -d db
+  - dip bundle install
+  - dip yarn install
+  - dip listen
+  - dip rails db:setup
+  - dip rails db:setup RAILS_ENV=test
+  - dip rails tmp:cache:clear

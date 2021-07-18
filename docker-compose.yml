@@ -1,0 +1,76 @@
+version: "3.7"
+
+services:
+  app_base: &app_base
+    build:
+      context: .
+      args:
+        RUBY_VERSION: '2.7.4'
+        NODE_MAJOR: '14'
+        YARN_VERSION: '1.22.5'
+        BUNDLER_VERSION: '2.2.11'
+    tty: true
+    stdin_open: true
+    depends_on:
+      - db
+    environment: &app_base_environment
+      DATABASE_URL: postgres://postgres:password@db:5432
+      WEBPACKER_DEV_SERVER_HOST: webpacker
+      BOOTSNAP_CACHE_DIR: /bundle/_bootsnap
+    volumes:
+      - '.:/src:cached'
+      - 'bundle:/bundle'
+      - 'node_modules:/src/node_modules'
+      - 'assets:/src/public/assets'
+      - 'packs:/src/public/packs'
+      - 'rails_cache:/src/tmp/cache'
+
+  runner:
+    <<: *app_base
+    command: /bin/bash
+
+  app:
+    <<: *app_base
+    command: |
+      bash -c "
+        dockerize -timeout 120s -wait tcp://db:5432 &&
+        rm -f tmp/pids/server.pid &&
+        bundle install &&
+        ./bin/rails s -b 0.0.0.0
+      "
+    ports:
+      - 3000:3000
+    depends_on:
+      - db
+      - webpacker
+
+  webpacker:
+    <<: *app_base
+    command: |
+      bash -c "
+        yarn install &&
+        ./bin/webpack-dev-server
+      "
+    ports:
+      - 3035:3035
+    depends_on: []
+    environment:
+      <<: *app_base_environment
+      WEBPACKER_DEV_SERVER_HOST: 0.0.0.0
+
+  db:
+    image: postgres:12-alpine
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: password
+
+volumes:
+  bundle:
+  node_modules:
+  assets:
+  packs:
+  rails_cache:
+  pg_data:
