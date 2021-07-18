@@ -4,10 +4,14 @@ FROM ruby:$RUBY_VERSION
 ARG NODE_MAJOR
 ARG YARN_VERSION
 ARG BUNDLER_VERSION
+ARG PG_MAJOR
 
 ENV LANG C.UTF-8
 
 RUN curl -sL https://deb.nodesource.com/setup_$NODE_MAJOR.x | bash -
+
+RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+  && echo 'deb http://apt.postgresql.org/pub/repos/apt/ buster-pgdg main' $PG_MAJOR > /etc/apt/sources.list.d/pgdg.list
 
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
   && echo 'deb http://dl.yarnpkg.com/debian/ stable main' > /etc/apt/sources.list.d/yarn.list
@@ -15,7 +19,7 @@ RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
 RUN apt-key update && apt-get update -qq \
   && apt-get install --no-install-recommends -y \
       build-essential \
-      postgresql-client \
+      postgresql-client-$PG_MAJOR \
       nodejs \
       yarn=$YARN_VERSION-1 \
       vim \
