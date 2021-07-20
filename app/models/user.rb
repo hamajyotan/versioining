@@ -12,6 +12,10 @@ class User < ApplicationRecord
     super
   end
 
+  def changed_attribute_names_to_save
+    mutations_from_database.changed_attribute_names | %w[id created_at]
+  end
+
   def destroy
     @new_record = true
     super
