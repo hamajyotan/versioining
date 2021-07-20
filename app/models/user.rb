@@ -6,6 +6,17 @@ class User < ApplicationRecord
   before_save :increment_version
   before_destroy :increment_version
 
+  def create_or_update(...)
+    @new_record = true
+    write_attribute :updated_at, nil
+    super
+  end
+
+  def destroy
+    @new_record = true
+    super
+  end
+
   private
 
   def increment_version
